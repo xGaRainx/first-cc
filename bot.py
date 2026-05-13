@@ -155,7 +155,7 @@ class HKTicketingBot:
         await asyncio.sleep(2)
 
         # 尝试加载 Cookie
-        if load_cookies(self.context, self.cookie_name, self.config.bot.cookie_dir):
+        if await load_cookies(self.context, self.cookie_name, self.config.bot.cookie_dir):
             await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded")
             await asyncio.sleep(2)
 
@@ -172,27 +172,29 @@ class HKTicketingBot:
         return True
 
     async def _check_logged_in(self) -> bool:
-        """检查是否已登录"""
+        """检查是否已登录快达票 (导航到快达票首页检测)"""
         try:
-            # 查找登出/账户相关元素, 不同网站结构不同
-            # 常见: 页面包含 "我的账户" / "登出" 等文字
+            current_url = self.page.url
+            await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded", timeout=10000)
+            await asyncio.sleep(1)
             content = await self.page.content()
-            logged_in_indicators = ["登出", "我的賬戶", "我的账户", "My Account", "Logout"]
-            for indicator in logged_in_indicators:
-                if indicator.lower() in content.lower():
+
+            # 已登录标志: 页面上有用户菜单/登出按钮
+            logged_in_markers = ["登出", "Logout", "我的賬戶", "My Account"]
+            # 未登录标志: 页面上有明显的登录入口
+            logged_out_markers = ["登入", "Login", "會員登入"]
+
+            # 先查已登录标志
+            for marker in logged_in_markers:
+                if marker.lower() in content.lower():
+                    logger.info(f"检测到已登录标志: {marker}")
                     return True
 
-            # 检查是否有登录按钮 (有则说明未登录)
-            login_indicators = ["登入", "Login", "Sign in"]
-            for indicator in login_indicators:
-                if indicator.lower() in content.lower():
-                    # 进一步确认是登录按钮而非其他
-                    try:
-                        btn = await self.page.get_by_role("link", name=re.compile(indicator, re.IGNORECASE))
-                        if await btn.count() > 0:
-                            return False
-                    except Exception:
-                        pass
+            # 再查未登录标志
+            for marker in logged_out_markers:
+                if marker.lower() in content.lower():
+                    logger.info(f"检测到未登录标志: {marker}")
+                    return False
 
             return False
         except Exception:
@@ -213,7 +215,7 @@ class HKTicketingBot:
             await asyncio.sleep(1)
             if i % 5 == 0 and await self._check_logged_in():
                 logger.info("✅ 登录成功!")
-                save_cookies(
+                await save_cookies(
                     self.context, self.cookie_name, self.config.bot.cookie_dir
                 )
                 return

@@ -84,18 +84,18 @@ def stop_alert(proc: Optional[subprocess.Popen]) -> None:
             proc.kill()
 
 
-def save_cookies(context, name: str, cookie_dir: str = "./cookies") -> None:
+async def save_cookies(context, name: str, cookie_dir: str = "./cookies") -> None:
     """保存浏览器 cookie 到文件"""
     path = Path(cookie_dir)
     path.mkdir(exist_ok=True)
-    cookies = context.cookies()
+    cookies = await context.cookies()
     filepath = path / f"{name}.json"
     with open(filepath, "w") as f:
         json.dump(cookies, f)
     logger.info(f"💾 Cookie 已保存: {filepath}")
 
 
-def load_cookies(context, name: str, cookie_dir: str = "./cookies") -> bool:
+async def load_cookies(context, name: str, cookie_dir: str = "./cookies") -> bool:
     """从文件加载 cookie 到浏览器上下文"""
     filepath = Path(cookie_dir) / f"{name}.json"
     if not filepath.exists():
@@ -104,7 +104,7 @@ def load_cookies(context, name: str, cookie_dir: str = "./cookies") -> bool:
     try:
         with open(filepath) as f:
             cookies = json.load(f)
-        context.add_cookies(cookies)
+        await context.add_cookies(cookies)
         logger.info(f"✅ Cookie 已加载: {filepath}")
         return True
     except Exception as e:

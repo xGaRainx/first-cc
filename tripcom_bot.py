@@ -75,7 +75,7 @@ class TripComBot:
         await self.page.goto(TRIP_COM_BASE, wait_until="domcontentloaded")
         await asyncio.sleep(2)
 
-        if load_cookies(self.context, "trip_com"):
+        if await load_cookies(self.context, "trip_com"):
             await self.page.goto(TRIP_COM_BASE, wait_until="domcontentloaded")
             await asyncio.sleep(2)
             if await self._check_logged_in():
@@ -89,7 +89,7 @@ class TripComBot:
             await asyncio.sleep(1)
             if await self._check_logged_in():
                 logger.info("✅ Trip.com 登录成功!")
-                save_cookies(self.context, "trip_com")
+                await save_cookies(self.context, "trip_com")
                 return True
 
         logger.error("❌ Trip.com 登录超时")
