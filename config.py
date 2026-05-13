@@ -41,8 +41,8 @@ TRIP_COM_EVENT_URL = "https://hk.trip.com/blog/the-weeknd-concert-hk"
 @dataclass
 class TicketConfig:
     """你的购票偏好"""
-    # 目标日期: 10月30日 或 10月31日, 设为 None 表示哪场都行
-    preferred_date: Optional[str] = None  # "10-30" 或 "10-31" 或 None
+    # 目标日期: 只要10月31日
+    preferred_date: Optional[str] = "10-31"  # "10-30" 或 "10-31" 或 None
 
     # 目标票价档位 (按优先级排列, 第一个没票就试下一个)
     # 预算原因只考虑 $1108 / $908 / $808 三档
