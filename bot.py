@@ -171,45 +171,33 @@ class HKTicketingBot:
         await self._manual_login()
         return True
 
+    # 快达票首页右上角登录状态元素 (用户提供)
+    HK_LOGIN_INDICATOR = "#pcHeader > div > div.pcHeaderTop___mGf1Z > a"
+
     async def _check_logged_in(self, navigate: bool = True) -> bool:
-        """检查是否已登录快达票 (仅使用正向指标, 避免误判)"""
+        """检查是否已登录快达票"""
         try:
             if navigate:
                 await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded", timeout=10000)
                 await asyncio.sleep(1)
 
-            # 正向指标 — 已登录的明确标志
-            positive_indicators = [
-                # 登出按钮/链接
-                '[href*="logout"]', '[href*="signout"]',
-                'a:has-text("登出")', 'a:has-text("Logout")',
-                # 会员专区 / 我的账户 (登录后才出现)
-                'a:has-text("我的賬戶")', 'a:has-text("My Account")',
-                'a:has-text("會員專區")', 'a:has-text("会员专区")',
-                # 用户名显示
-                '.user-name', '.member-name', '.account-name',
-            ]
-            for selector in positive_indicators:
-                elem = await self.page.query_selector(selector)
-                if elem:
-                    text = await elem.inner_text() if hasattr(elem, 'inner_text') else ''
-                    logger.info(f"检测到已登录标志: {selector}")
-                    return True
-
-            # 如果导航到首页后仍没找到正向指标 → 检查是否有明显登入入口
-            login_entry = await self.page.query_selector(
-                'a[href*="login"]:has-text("登入"), a:has-text("會員登入")'
-            )
-            if login_entry:
-                logger.info("检测到登入入口, 未登录")
-                return False
+            elem = await self.page.query_selector(self.HK_LOGIN_INDICATOR)
+            if elem:
+                text = await elem.inner_text()
+                text_lower = text.strip().lower()
+                # 未登录: 显示 "登入" 或 "Login"
+                if "登入" in text_lower or "login" in text_lower:
+                    return False
+                # 已登录: 显示其他内容 (用户名/账户等)
+                logger.info(f"检测到已登录, 元素文本: {text}")
+                return True
 
             return False
         except Exception:
             return False
 
     async def _manual_login(self) -> None:
-        """引导用户手动登录 (登录期间不刷新页面)"""
+        """引导用户手动登录 (每15秒回首页检查一次登录状态)"""
         logger.info("🔑 请在弹出的浏览器窗口中手动登录快达票...")
         desktop_notify("抢票助手", "请手动登录快达票账户")
 
@@ -218,26 +206,32 @@ class HKTicketingBot:
         except Exception:
             pass
 
-        logger.info("⏳ 等待你完成登录 (不会刷新页面, 有5分钟时间)...")
-        logger.info("   💡 提示: 在浏览器窗口里点「登入」然后输入账号密码即可")
+        logger.info("⏳ 等待你完成登录 (每15秒检查一次, 有5分钟时间)...")
+        logger.info("   💡 在浏览器里点「登入」→ 输入账号密码 → 登录即可")
 
-        last_msg_minute = -1
-        for i in range(100):  # 最多等 5 分钟 (100 * 3秒)
-            await asyncio.sleep(3)
+        for minute in range(5):
+            # 等待期间每3秒静默检查一次当前页面
+            for _ in range(5):  # 5 * 3 = 15秒一个周期
+                await asyncio.sleep(3)
+                if await self._check_logged_in(navigate=False):
+                    logger.info("✅ 登录成功!")
+                    await save_cookies(
+                        self.context, self.cookie_name, self.config.bot.cookie_dir
+                    )
+                    return
 
-            if await self._check_logged_in(navigate=False):
+            # 15秒后回到首页检查 (此时如果用户已登录, 首页会显示账户信息)
+            logger.info(f"⏰ 第{minute+1}分钟, 回到首页检查登录状态...")
+            if await self._check_logged_in(navigate=True):
                 logger.info("✅ 登录成功!")
                 await save_cookies(
                     self.context, self.cookie_name, self.config.bot.cookie_dir
                 )
                 return
 
-            # 每分钟提醒一次, 避免刷屏
-            minute = i // 20
-            if minute > last_msg_minute:
-                left = 5 - minute
-                logger.info(f"⏰ 等待中... 剩余约 {left} 分钟")
-                last_msg_minute = minute
+            left = 4 - minute
+            if left > 0:
+                logger.info(f"   未检测到登录, 剩余约 {left} 分钟...")
 
         logger.error("❌ 登录超时 (5分钟)")
 
