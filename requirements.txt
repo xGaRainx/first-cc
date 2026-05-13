@@ -1,1 +1,2 @@
 playwright>=1.45.0
+win10toast; sys_platform == "win32"
