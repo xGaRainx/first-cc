@@ -171,8 +171,8 @@ class HKTicketingBot:
         await self._manual_login()
         return True
 
-    # 快达票首页右上角登录状态元素 (用户提供)
-    HK_LOGIN_INDICATOR = "#pcHeader > div > div.pcHeaderTop___mGf1Z > a"
+    # 快达票登录状态元素: 未登录显示"登录", 已登录显示用户名
+    HK_LOGIN_INDICATOR = "div.title___UIF7d"
 
     async def _check_logged_in(self, navigate: bool = True) -> bool:
         """检查是否已登录快达票"""
@@ -184,12 +184,14 @@ class HKTicketingBot:
             elem = await self.page.query_selector(self.HK_LOGIN_INDICATOR)
             if elem:
                 text = await elem.inner_text()
-                text_lower = text.strip().lower()
-                # 未登录: 显示 "登入" 或 "Login"
-                if "登入" in text_lower or "login" in text_lower:
+                text = text.strip()
+                if not text:
                     return False
-                # 已登录: 显示其他内容 (用户名/账户等)
-                logger.info(f"检测到已登录, 元素文本: {text}")
+                # 未登录时显示"登录"
+                if text == "登录" or text.lower() == "login":
+                    return False
+                # 已登录时显示用户名
+                logger.info(f"检测到已登录, 用户名: {text}")
                 return True
 
             return False
