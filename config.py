@@ -16,18 +16,26 @@ class SalePhase(Enum):
 
 
 # ============================================================
-#  演唱会信息（实际 URL 待官方公布后更新）
+#  The Weeknd 香港演唱会 2026 — 实际票价已公布 (2026-05-13)
+#  日期: 10月30-31日 20:15, 地点: 启德体育园主场馆
+#  HK Ticketing 活动页 URL 预计 5/18 前上线, 届时更新
 # ============================================================
 
-# The Weeknd 香港演唱会 2026
-# 日期: 2026年10月30-31日, 地点: 启德体育园
-# 票价: 待公布 (预计 HKD 680 / 980 / 1280 / 1680 / 2080)
+# 实际票价 (9个档位)
+# VIP: $5,998 | $5,208 | $3,408
+# 普通: $2,008 | $1,708 | $1,408 | $1,108 | $908 | $808
 
 EVENT_URLS = {
-    SalePhase.ARTIST_PRESALE: "https://www.hkticketing.com/events/the-weeknd-2026",  # 待官方公布后替换
-    SalePhase.LIVE_NATION: "https://www.hkticketing.com/events/the-weeknd-2026-ln",   # 待官方公布后替换
-    SalePhase.GENERAL_SALE: "https://www.hkticketing.com/events/the-weeknd-2026",     # 待官方公布后替换
+    # HK Ticketing 活动页 — 待官方公布后替换为实际 URL
+    # 通常格式类似: https://premier.hkticketing.com/shows/show.aspx?sh=XXXX
+    # 也可直接搜索: https://www.hkticketing.com 搜 "The Weeknd"
+    SalePhase.ARTIST_PRESALE: "",
+    SalePhase.LIVE_NATION: "https://www.livenation.hk/en/event/the-weeknd-after-hours-til-dawn-tour-hong-kong-tickets-edp1672828",
+    SalePhase.GENERAL_SALE: "",
 }
+
+# Trip.com 优先购页面
+TRIP_COM_EVENT_URL = "https://hk.trip.com/blog/the-weeknd-concert-hk"
 
 
 @dataclass
@@ -37,13 +45,14 @@ class TicketConfig:
     preferred_date: Optional[str] = None  # "10-30" 或 "10-31" 或 None
 
     # 目标票价档位 (按优先级排列, 第一个没票就试下一个)
-    # 价格 HKD, 待官方公布后调整
+    # 实际票价: $808 | $908 | $1,108 | $1,408 | $1,708 | $2,008 | VIP $3,408/$5,208/$5,998
     price_tiers: List[str] = field(default_factory=lambda: [
-        "HKD 1280",
-        "HKD 980",
-        "HKD 1680",
-        "HKD 680",
-        "HKD 2080",
+        "HKD 1108",
+        "HKD 1408",
+        "HKD 908",
+        "HKD 808",
+        "HKD 1708",
+        "HKD 2008",
     ])
 
     # 购票数量 (快达票每账户限 6 张)

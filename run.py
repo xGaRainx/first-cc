@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
         "--tier",
         type=str,
         default=None,
-        help='首选票价, 如 "HKD 1280" (默认尝试多个档位)',
+        help='首选票价, 如 "HKD 1108" (808/908/1108/1408/1708/2008, 默认按优先级尝试)',
     )
     parser.add_argument(
         "--qty",
@@ -153,11 +153,31 @@ def build_config(args: argparse.Namespace) -> Config:
 
 def get_event_url(config: Config, args: argparse.Namespace) -> str:
     """获取活动页面 URL"""
-    from config import EVENT_URLS
+    from config import EVENT_URLS, TRIP_COM_EVENT_URL
 
     if args.url:
         return args.url
-    return EVENT_URLS.get(config.sale_phase, "")
+
+    if config.sale_phase == SalePhase.TRIP_COM:
+        return TRIP_COM_EVENT_URL
+
+    url = EVENT_URLS.get(config.sale_phase, "")
+    if not url:
+        phase_names = {
+            SalePhase.ARTIST_PRESALE: "艺人优先购",
+            SalePhase.GENERAL_SALE: "公开发售",
+        }
+        name = phase_names.get(config.sale_phase, config.sale_phase.value)
+        logger.error(
+            f"❌ {name} 的 HK Ticketing 活动 URL 尚未配置!\n"
+            f"   HK Ticketing 活动页通常临近开售才上线, 请届时:\n"
+            f"   1. 访问 https://www.hkticketing.com 搜索 'The Weeknd'\n"
+            f"   2. 将活动页 URL 用 --url 参数传入, 或更新 config.py 中的 EVENT_URLS\n"
+            f'\n'
+            f'   用法: python run.py --phase {args.phase} --time "{args.time}" --url "实际URL"'
+        )
+        sys.exit(1)
+    return url
 
 
 async def run_single_bot(config: Config, event_url: str, sale_time: datetime, browser_name: str, dry_run: bool) -> None:
