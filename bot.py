@@ -171,49 +171,60 @@ class HKTicketingBot:
         await self._manual_login()
         return True
 
-    async def _check_logged_in(self) -> bool:
-        """检查是否已登录快达票 (导航到快达票首页检测)"""
+    async def _check_logged_in(self, navigate: bool = True) -> bool:
+        """检查是否已登录快达票。navigate=False 时仅检查当前页面, 不刷新。"""
         try:
-            current_url = self.page.url
-            await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded", timeout=10000)
-            await asyncio.sleep(1)
+            if navigate:
+                await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded", timeout=10000)
+                await asyncio.sleep(1)
             content = await self.page.content()
 
-            # 已登录标志: 页面上有用户菜单/登出按钮
-            logged_in_markers = ["登出", "Logout", "我的賬戶", "My Account"]
-            # 未登录标志: 页面上有明显的登录入口
-            logged_out_markers = ["登入", "Login", "會員登入"]
+            # 已登录强标志: 登出按钮
+            logged_out_btn = await self.page.query_selector(
+                '[href*="logout"], [href*="signout"], button:has-text("登出")'
+            )
+            if logged_out_btn:
+                logger.info("检测到登出按钮, 已登录")
+                return True
 
-            # 先查已登录标志
-            for marker in logged_in_markers:
-                if marker.lower() in content.lower():
-                    logger.info(f"检测到已登录标志: {marker}")
-                    return True
+            # 未登录强标志: 密码输入框
+            pwd_input = await self.page.query_selector('input[type="password"]')
+            if pwd_input:
+                logger.info("检测到密码输入框, 未登录")
+                return False
 
-            # 再查未登录标志
-            for marker in logged_out_markers:
-                if marker.lower() in content.lower():
-                    logger.info(f"检测到未登录标志: {marker}")
-                    return False
+            # 检查登录链接
+            login_link = await self.page.query_selector(
+                '[href*="login"]:has-text("登入"), a:has-text("登入"), a:has-text("Login")'
+            )
+            if login_link:
+                logger.info("检测到登入链接, 未登录")
+                return False
 
+            # 无法判断时, 如果导航到首页也没有登录表单, 可能已登录
+            if navigate:
+                return True
             return False
         except Exception:
             return False
 
     async def _manual_login(self) -> None:
-        """引导用户手动登录"""
+        """引导用户手动登录 (登录期间不刷新页面)"""
         logger.info("🔑 请在弹出的浏览器窗口中手动登录快达票...")
         desktop_notify("抢票助手", "请手动登录快达票账户")
 
+        # 导航到快达票首页
         try:
-            await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded")
+            await self.page.goto(HK_TICKETING_BASE, wait_until="domcontentloaded", timeout=15000)
         except Exception:
             pass
 
-        # 等待用户登录 (最多等 5 分钟)
-        for i in range(300):
-            await asyncio.sleep(1)
-            if i % 5 == 0 and await self._check_logged_in():
+        logger.info("⏳ 等待你完成登录 (不会刷新页面, 放心操作)...")
+
+        # 等待用户登录, 每3秒检查一次当前页面状态 (不刷新)
+        for i in range(100):  # 最多等 5 分钟
+            await asyncio.sleep(3)
+            if await self._check_logged_in(navigate=False):
                 logger.info("✅ 登录成功!")
                 await save_cookies(
                     self.context, self.cookie_name, self.config.bot.cookie_dir
