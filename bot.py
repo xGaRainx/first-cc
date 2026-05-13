@@ -25,6 +25,7 @@ from utils import (
 )
 
 HK_TICKETING_BASE = "https://www.hkticketing.com"
+LIVE_NATION_DOMAINS = ["livenation.hk", "livenation.com"]
 QUEUE_IT_DOMAINS = ["queue-it.com", "queue-it.net", "queue-it.cloud"]
 
 
@@ -186,6 +187,13 @@ class HKTicketingBot:
                 logger.warning("⚠️ 页面加载超时, 重试...")
                 continue
 
+            # Live Nation 页面 → 找跳转到快达票的链接并点击
+            if self._is_livenation(self.page.url):
+                if await self._click_livenation_link():
+                    logger.info("🎫 已从 Live Nation 跳转到快达票")
+                    event_url = self.page.url
+                continue
+
             if self._is_queue_it(self.page.url):
                 logger.info("🔄 进入 Queue-it 排队...")
                 await self._handle_queue()
@@ -212,6 +220,33 @@ class HKTicketingBot:
 
     def _is_queue_it(self, url: str):
         return any(domain in url.lower() for domain in QUEUE_IT_DOMAINS)
+
+    def _is_livenation(self, url: str):
+        return any(domain in url.lower() for domain in LIVE_NATION_DOMAINS)
+
+    async def _click_livenation_link(self):
+        """在 Live Nation 页面上找到跳转快达票的按钮并点击"""
+        link_selectors = [
+            'a:has-text("Get Tickets")',
+            'a:has-text("Buy Tickets")',
+            'a:has-text("購票")',
+            'a:has-text("Book Now")',
+            '[data-track="tickets"]',
+            '.ticket-link a',
+            '.buy-tickets a',
+        ]
+        for sel in link_selectors:
+            try:
+                elem = await self.page.wait_for_selector(sel, timeout=3000)
+                if elem:
+                    href = await elem.get_attribute("href")
+                    logger.info(f"👉 点击 Live Nation 购票链接: {href}")
+                    await elem.click()
+                    await asyncio.sleep(3)
+                    return True
+            except PlaywrightTimeout:
+                continue
+        return False
 
     async def _handle_queue(self):
         logger.info("📋 进入虚拟等候室, 等待放行...")
