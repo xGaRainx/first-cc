@@ -36,15 +36,17 @@ python3 run.py --phase livenation --time "2026-05-20 14:00:00" --dry-run --brows
 
 ## 5. 抢票命令
 
-| 场次 | 日期 | 命令 |
+三场的入口不同：
+
+| 场次 | 入口 | 命令 |
 |------|------|------|
-| 艺人优先购 | 5/18 10:00 | `python3 run.py --phase artist --time "2026-05-18 10:00:00" --url "活动URL"` |
-| Live Nation 优先购 | 5/20 14:00 | `python3 run.py --phase livenation --time "2026-05-20 14:00:00"` |
-| 公开发售 | 5/21 10:00 | `python3 run.py --phase general --time "2026-05-21 10:00:00" --url "活动URL"` |
+| 艺人优先购 5/18 10:00 | 邮件专属链接 | `python3 run.py --phase artist --time "2026-05-18 10:00:00" --url "邮件中的链接"` |
+| Live Nation 优先购 5/20 14:00 | Live Nation 页面自动跳转 | `python3 run.py --phase livenation --time "2026-05-20 14:00:00"` |
+| 公开发售 5/21 10:00 | 快达票活动页 | `python3 run.py --phase general --time "2026-05-21 10:00:00" --url "快达票活动URL"` |
 
-> 艺人优先购和公开发售的 HK Ticketing 活动 URL 尚未公布，届时通过 `--url` 传入。
-
-开 3 个浏览器窗口：`--browsers 3`
+- 艺人优先购需提前在 theweeknd.com/tour 登记，链接通过邮件发送，无法在快达票直接搜索
+- Live Nation 优先购脚本会自动从 Live Nation 页面点击跳转到快达票
+- 公开发售的 URL 临近开售时在 hkticketing.com 搜索 "The Weeknd" 获取
 
 ## 6. 过程说明
 
