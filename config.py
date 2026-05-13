@@ -45,14 +45,11 @@ class TicketConfig:
     preferred_date: Optional[str] = None  # "10-30" 或 "10-31" 或 None
 
     # 目标票价档位 (按优先级排列, 第一个没票就试下一个)
-    # 实际票价: $808 | $908 | $1,108 | $1,408 | $1,708 | $2,008 | VIP $3,408/$5,208/$5,998
+    # 预算原因只考虑 $1108 / $908 / $808 三档
     price_tiers: List[str] = field(default_factory=lambda: [
         "HKD 1108",
-        "HKD 1408",
         "HKD 908",
         "HKD 808",
-        "HKD 1708",
-        "HKD 2008",
     ])
 
     # 购票数量 (快达票每账户限 6 张)
