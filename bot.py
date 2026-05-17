@@ -26,6 +26,7 @@ from utils import (
 
 HK_TICKETING_BASE = "https://www.hkticketing.com"
 LIVE_NATION_DOMAINS = ["livenation.hk", "livenation.com"]
+ARTIST_TOUR_DOMAINS = ["theweeknd.com"]
 QUEUE_IT_DOMAINS = ["queue-it.com", "queue-it.net", "queue-it.cloud"]
 
 
@@ -187,10 +188,17 @@ class HKTicketingBot:
                 logger.warning("⚠️ 页面加载超时, 重试...")
                 continue
 
-            # Live Nation 页面 → 找跳转到快达票的链接并点击
+            # Live Nation 页面 → 点击跳转到快达票
             if self._is_livenation(self.page.url):
                 if await self._click_livenation_link():
                     logger.info("🎫 已从 Live Nation 跳转到快达票")
+                    event_url = self.page.url
+                continue
+
+            # 艺人官网 tour 页面 → 找香港站链接并点击
+            if self._is_artist_tour(self.page.url):
+                if await self._click_artist_tour_link():
+                    logger.info("🎫 已从艺人官网跳转到快达票")
                     event_url = self.page.url
                 continue
 
@@ -223,6 +231,31 @@ class HKTicketingBot:
 
     def _is_livenation(self, url: str):
         return any(domain in url.lower() for domain in LIVE_NATION_DOMAINS)
+
+    def _is_artist_tour(self, url: str):
+        return any(domain in url.lower() for domain in ARTIST_TOUR_DOMAINS)
+
+    async def _click_artist_tour_link(self):
+        """在艺人官网 tour 页面上找香港站链接并点击"""
+        link_selectors = [
+            'a:has-text("Hong Kong")',
+            'a:has-text("Kai Tak")',
+            'a:has-text("Tickets")',
+            '.tour-dates a',
+            '[data-city*="hong"]',
+        ]
+        for sel in link_selectors:
+            try:
+                elem = await self.page.wait_for_selector(sel, timeout=3000)
+                if elem:
+                    href = await elem.get_attribute("href")
+                    logger.info(f"👉 点击艺人官网链接: {href}")
+                    await elem.click()
+                    await asyncio.sleep(3)
+                    return True
+            except PlaywrightTimeout:
+                continue
+        return False
 
     async def _click_livenation_link(self):
         """在 Live Nation 页面上找到跳转快达票的按钮并点击"""

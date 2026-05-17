@@ -11,7 +11,7 @@ class SalePhase(Enum):
 
 
 EVENT_URLS = {
-    SalePhase.ARTIST_PRESALE: "",
+    SalePhase.ARTIST_PRESALE: "https://www.livenation.hk/event/the-weeknd-after-hours-til-dawn-tour-hong-kong-tickets-edp1672835",
     SalePhase.LIVE_NATION: "https://www.livenation.hk/en/event/the-weeknd-after-hours-til-dawn-tour-hong-kong-tickets-edp1672828",
     SalePhase.GENERAL_SALE: "",
 }
