@@ -330,6 +330,10 @@ class HKTicketingBot:
         tkt = self.config.ticket
 
         try:
+            # 艺人优先购需要输入 code
+            if tkt.presale_code and await self._detect_presale_code_field():
+                await self._enter_presale_code(tkt.presale_code)
+
             if tkt.preferred_date:
                 await self._select_date(tkt.preferred_date)
 
@@ -362,6 +366,47 @@ class HKTicketingBot:
         except Exception as e:
             logger.error(f"结账出错: {e}")
             return False
+
+    async def _detect_presale_code_field(self):
+        """检测页面上是否有优先购验证码输入框"""
+        selectors = [
+            'input[name*="code"]',
+            'input[name*="promo"]',
+            'input[name*="presale"]',
+            'input[placeholder*="code"i]',
+            'input[placeholder*="代碼"i]',
+            'input[placeholder*="代碼"i]',
+        ]
+        for sel in selectors:
+            if await self.page.query_selector(sel):
+                return True
+        return False
+
+    async def _enter_presale_code(self, code: str):
+        """输入优先购验证码"""
+        logger.info(f"🔑 输入优先购验证码...")
+        selectors = [
+            'input[name*="code"]',
+            'input[name*="promo"]',
+            'input[name*="presale"]',
+            'input[placeholder*="code"i]',
+            'input[placeholder*="代碼"i]',
+        ]
+        for sel in selectors:
+            elem = await self.page.query_selector(sel)
+            if elem:
+                await elem.fill(code)
+                logger.info(f"✅ 已输入验证码")
+                # 提交按钮
+                for btn_text in ["提交", "確認", "Submit", "Verify"]:
+                    btn = await self.page.query_selector(
+                        f'button:has-text("{btn_text}"), input[type="submit"][value*="{btn_text}"i]'
+                    )
+                    if btn:
+                        await btn.click()
+                        await asyncio.sleep(2)
+                        return
+                return
 
     async def _select_date(self, date: str):
         selectors = [

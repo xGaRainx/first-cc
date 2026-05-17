@@ -17,6 +17,7 @@ EVENT_URLS = {
 }
 
 TRIP_COM_EVENT_URL = "https://hk.trip.com/blog/the-weeknd-concert-hk"
+ARTIST_PRESALE_CODE = "4HTDASIA"  # 艺人官网优先购验证码
 
 
 @dataclass
@@ -29,6 +30,7 @@ class TicketConfig:
     ])
     quantity: int = 2
     seat_preference: str = "any"
+    presale_code: str = ARTIST_PRESALE_CODE
 
 
 @dataclass
